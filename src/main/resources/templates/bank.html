@@ -1,342 +1,235 @@
+
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bank Transfer System</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <title>Bank Transaction Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            margin: 0;
+            padding: 25px;
+            color: #243247;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+        h1, h2 { color: #17365d; }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1764a3;
+        }
+        input, select, button {
+            padding: 10px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        input, select { width: 100%; }
+        button {
+            background: #1764a3;
+            color: white;
+            border: 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .forms {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        .table-wrap { overflow-x: auto; }
+        .success { color: green; }
+        .error { color: #b42318; }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-row input { width: auto; }
+    </style>
 </head>
 <body>
+<div class="container">
 
-<header class="topbar">
-    <h1>Bank Transfer System</h1>
-    <p>Spring Boot &middot; @Transactional &middot; @Query &middot; MySQL</p>
-</header>
+    <h1>Bank Transaction Dashboard</h1>
 
-<main class="container">
+    <p class="success" th:if="${success}" th:text="${success}"></p>
+    <p class="error" th:if="${error}" th:text="${error}"></p>
 
-    <!-- ===== Navigation ===== -->
-    <nav class="card navigation">
-        <a th:href="@{/}" class="btn small">Dashboard</a>
-        <a th:href="@{/large-transfers(min=10000)}" class="btn small">
-            Large Transfers
-        </a>
-        <a th:href="@{/deposit}" class="btn small">Deposit Money</a>
-        <a th:href="@{/withdraw}" class="btn small">Withdraw Money</a>
-    </nav>
+    <div class="stats">
+        <div class="card">
+            <h3>Total Bank Balance</h3>
+            <div class="stat-value" th:text="${totalBalance}">0.00</div>
+        </div>
+        <div class="card">
+            <h3>Successful Transactions</h3>
+            <div class="stat-value" th:text="${successCount}">0</div>
+        </div>
+        <div class="card">
+            <h3>Failed Transactions</h3>
+            <div class="stat-value" th:text="${failedCount}">0</div>
+        </div>
+    </div>
 
-    <!-- ===== Alerts ===== -->
-    <div class="alert success"
-         th:if="${success}"
-         th:text="${success}"></div>
+    <div class="forms">
 
-    <div class="alert danger"
-         th:if="${error}"
-         th:text="${error}"></div>
+        <div class="card">
+            <h2>Add Customer</h2>
 
-    <!-- ===== Statistics ===== -->
-    <section class="stats">
+            <form th:action="@{/customers}" th:object="${customer}"
+                  method="post">
 
-        <div class="stat">
-            <span th:text="${totalCustomers}">0</span>
-            <small>Customers</small>
+                <label>Name</label>
+                <input type="text" th:field="*{name}" required>
+
+                <label>Email</label>
+                <input type="email" th:field="*{email}" required>
+
+                <label>Account Number</label>
+                <input type="text" th:field="*{accountNumber}"
+                       pattern="[0-9]{6}" required>
+
+                <label>Initial Balance</label>
+                <input type="number" th:field="*{balance}"
+                       min="0" step="0.01" required>
+
+                <button type="submit">Add Customer</button>
+            </form>
         </div>
 
-        <div class="stat">
-            <span th:text="${#numbers.formatDecimal(
-                totalBalance, 1, 'COMMA', 2, 'POINT')}">0.00</span>
-            <small>Total balance (LKR)</small>
-        </div>
-
-        <div class="stat ok">
-            <span th:text="${successCount}">0</span>
-            <small>Successful transfers</small>
-        </div>
-
-        <div class="stat fail">
-            <span th:text="${failedCount}">0</span>
-            <small>Failed transfers</small>
-        </div>
-
-    </section>
-
-    <div class="grid2">
-
-        <!-- ===== Transfer Money ===== -->
-        <section class="card">
+        <div class="card">
             <h2>Transfer Money</h2>
 
             <form th:action="@{/transfer}"
-                  th:object="${transferRequest}"
-                  method="post"
-                  novalidate>
+                  th:object="${transferRequest}" method="post">
 
-                <div class="field">
-                    <label for="fromAccount">From (sender)</label>
+                <label>From Account</label>
+                <select th:field="*{fromAccount}" required>
+                    <option value="">Select sender</option>
+                    <option th:each="c : ${customers}"
+                            th:value="${c.accountNumber}"
+                            th:text="${c.name + ' - ' + c.accountNumber}">
+                    </option>
+                </select>
 
-                    <select id="fromAccount" th:field="*{fromAccount}">
-                        <option value="">-- Select sender --</option>
+                <label>To Account</label>
+                <select th:field="*{toAccount}" required>
+                    <option value="">Select receiver</option>
+                    <option th:each="c : ${customers}"
+                            th:value="${c.accountNumber}"
+                            th:text="${c.name + ' - ' + c.accountNumber}">
+                    </option>
+                </select>
 
-                        <option th:each="c : ${allCustomers}"
-                                th:unless="${c.accountNumber == '999999'}"
-                                th:value="${c.accountNumber}"
-                                th:text="${c.fullName + ' (' +
-                                    c.accountNumber + ') - LKR ' +
-                                    #numbers.formatDecimal(
-                                        c.balance, 1, 'COMMA', 2, 'POINT')}">
-                        </option>
-                    </select>
+                <label>Amount (LKR)</label>
+                <input type="number" th:field="*{amount}"
+                       min="0.01" step="0.01" required>
 
-                    <small class="error"
-                           th:if="${#fields.hasErrors('fromAccount')}"
-                           th:errors="*{fromAccount}"></small>
-                </div>
+                <label class="checkbox-row">
+                    <input type="checkbox" th:field="*{simulateFailure}">
+                    Simulate Failure (Rollback Test)
+                </label>
 
-                <div class="field">
-                    <label for="toAccount">To (receiver)</label>
-
-                    <select id="toAccount" th:field="*{toAccount}">
-                        <option value="">-- Select receiver --</option>
-
-                        <option th:each="c : ${allCustomers}"
-                                th:unless="${c.accountNumber == '999999'}"
-                                th:value="${c.accountNumber}"
-                                th:text="${c.fullName + ' (' +
-                                    c.accountNumber + ')'}">
-                        </option>
-                    </select>
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('toAccount')}"
-                           th:errors="*{toAccount}"></small>
-                </div>
-
-                <div class="field">
-                    <label for="amount">Amount (LKR)</label>
-
-                    <input type="number"
-                           step="0.01"
-                           min="0.01"
-                           id="amount"
-                           th:field="*{amount}"
-                           placeholder="5000.00">
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('amount')}"
-                           th:errors="*{amount}"></small>
-                </div>
-
-                <div class="field check">
-                    <input type="checkbox"
-                           id="simulateFailure"
-                           th:field="*{simulateFailure}">
-
-                    <label for="simulateFailure">
-                        Simulate a system failure after the withdrawal
-                        (rollback test)
-                    </label>
-                </div>
-
-                <button type="submit" class="btn primary">
-                    Transfer
-                </button>
-
-                <p class="help-text">
-                    A 1% transfer fee is credited to bank account 999999.
-                </p>
+                <button type="submit">Transfer Money</button>
             </form>
-        </section>
-
-        <!-- ===== Add Customer ===== -->
-        <section class="card">
-            <h2>Add Customer</h2>
-
-            <form th:action="@{/customers}"
-                  th:object="${customer}"
-                  method="post"
-                  novalidate>
-
-                <div class="field">
-                    <label for="fullName">Full Name</label>
-
-                    <input type="text"
-                           id="fullName"
-                           th:field="*{fullName}"
-                           placeholder="e.g. Nuwan Jayasinghe">
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('fullName')}"
-                           th:errors="*{fullName}"></small>
-                </div>
-
-                <div class="field">
-                    <label for="email">Email</label>
-
-                    <input type="email"
-                           id="email"
-                           th:field="*{email}"
-                           placeholder="nuwan@example.com">
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('email')}"
-                           th:errors="*{email}"></small>
-                </div>
-
-                <div class="field">
-                    <label for="accountNumber">Account Number (6 digits)</label>
-
-                    <input type="text"
-                           id="accountNumber"
-                           th:field="*{accountNumber}"
-                           placeholder="100004">
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('accountNumber')}"
-                           th:errors="*{accountNumber}"></small>
-                </div>
-
-                <div class="field">
-                    <label for="balance">Opening Balance (LKR)</label>
-
-                    <input type="number"
-                           step="0.01"
-                           min="0"
-                           id="balance"
-                           th:field="*{balance}"
-                           placeholder="15000.00">
-
-                    <small class="error"
-                           th:if="${#fields.hasErrors('balance')}"
-                           th:errors="*{balance}"></small>
-                </div>
-
-                <button type="submit" class="btn primary">
-                    Save Customer
-                </button>
-            </form>
-        </section>
+        </div>
 
     </div>
 
-    <!-- ===== Customers Table ===== -->
-    <section class="card">
-        <h2>
-            Customers
-            <span class="badge" th:text="${#lists.size(customers)}">0</span>
-        </h2>
+    <div class="card">
+        <h2>Customers</h2>
 
-        <form th:action="@{/}" method="get" class="search">
-            <input type="text"
-                   name="keyword"
-                   th:value="${keyword}"
-                   placeholder="Search by name...">
-
-            <button type="submit" class="btn small">Search</button>
-            <a th:href="@{ / }" class="btn small">Clear</a>
+        <form th:action="@{/}" method="get">
+            <input type="text" name="search"
+                   th:value="${search}"
+                   placeholder="Search customer by name">
+            <button type="submit">Search</button>
+            <a th:href="@{/}">Clear</a>
         </form>
 
         <div class="table-wrap">
             <table>
                 <thead>
                 <tr>
-                    <th>Account No.</th>
-                    <th>Full Name</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th class="num">Balance (LKR)</th>
+                    <th>Account Number</th>
+                    <th>Balance (LKR)</th>
                     <th>History</th>
                 </tr>
                 </thead>
-
                 <tbody>
-                <tr th:if="${#lists.isEmpty(customers)}">
-                    <td colspan="5" class="empty">No customers found.</td>
-                </tr>
-
                 <tr th:each="c : ${customers}">
-                    <td th:text="${c.accountNumber}"></td>
-                    <td th:text="${c.fullName}"></td>
+                    <td th:text="${c.name}"></td>
                     <td th:text="${c.email}"></td>
-
-                    <td class="num"
-                        th:text="${#numbers.formatDecimal(
-                            c.balance, 1, 'COMMA', 2, 'POINT')}">
-                    </td>
-
+                    <td th:text="${c.accountNumber}"></td>
+                    <td th:text="${c.balance}"></td>
                     <td>
-                        <a class="btn small"
-                           th:href="@{/accounts/{no}/history(
-                               no=${c.accountNumber})}">
-                            View
+                        <a th:href="@{/accounts/{account}/history(
+                            account=${c.accountNumber})}">
+                            View History
                         </a>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
-    </section>
+    </div>
 
-    <!-- ===== Latest Transactions ===== -->
-    <section class="card">
-        <h2>Latest Transactions</h2>
+    <div class="card">
+        <h2>Recent Transactions</h2>
 
         <div class="table-wrap">
             <table>
                 <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Date &amp; Time</th>
+                    <th>Date</th>
                     <th>From</th>
                     <th>To</th>
-                    <th class="num">Amount (LKR)</th>
+                    <th>Amount</th>
+                    <th>Type</th>
                     <th>Status</th>
-                    <th>Description</th>
                 </tr>
                 </thead>
-
                 <tbody>
-                <tr th:if="${#lists.isEmpty(transactions)}">
-                    <td colspan="7" class="empty">No transactions yet.</td>
-                </tr>
-
                 <tr th:each="t : ${transactions}">
-                    <td th:text="${t.id}"></td>
-
-                    <td th:text="${t.createdAt != null
-                        ? #temporals.format(
-                            t.createdAt, 'yyyy-MM-dd HH:mm:ss')
-                        : '-'}"></td>
-
-                    <td th:text="${t.fromAccount != null
-                        ? t.fromAccount : '-'}"></td>
-
-                    <td th:text="${t.toAccount != null
-                        ? t.toAccount : '-'}"></td>
-
-                    <td class="num"
-                        th:text="${#numbers.formatDecimal(
-                            t.amount, 1, 'COMMA', 2, 'POINT')}">
-                    </td>
-
-                    <td>
-                        <span class="tag"
-                              th:classappend="${t.status.name() == 'SUCCESS'}
-                                  ? 'ok' : 'fail'"
-                              th:text="${t.status}">
-                        </span>
-                    </td>
-
-                    <td th:text="${t.description}"></td>
+                    <td th:text="${t.transactionDate}"></td>
+                    <td th:text="${t.fromAccount}"></td>
+                    <td th:text="${t.toAccount}"></td>
+                    <td th:text="${t.amount}"></td>
+                    <td th:text="${t.type}"></td>
+                    <td th:text="${t.status}"></td>
                 </tr>
                 </tbody>
             </table>
         </div>
-    </section>
+    </div>
 
-</main>
-
-<footer class="footer">
-    COSC 32133 / BECS 32263 &middot; Lab Sheet 06
-</footer>
-
+</div>
 </body>
 </html>

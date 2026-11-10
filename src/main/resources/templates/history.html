@@ -1,54 +1,203 @@
+
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Account History</title>
-  <link rel="stylesheet" th:href="@{/css/style.css}">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Account Transaction History</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            margin: 0;
+            padding: 30px;
+            color: #243247;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        h1, h2 {
+            color: #17365d;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #1764a3;
+            text-decoration: none;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #edf2f7;
+        }
+
+        .success {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .failed {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            color: #64748b;
+            padding: 25px;
+        }
+    </style>
 </head>
+
 <body>
+<div class="container">
 
-<header class="topbar">
-  <h1>Bank Transfer System</h1>
-  <p>Account history</p>
-</header>
+    <a class="back-link" th:href="@{/}">
+        ← Back to Dashboard
+    </a>
 
-<main class="container">
-  <section class="card">
-    <h2 th:text="${customer.fullName + ' (' + customer.accountNumber + ')'}">Customer</h2>
-    <p>Current balance:
-      <strong>LKR <span th:text="${#numbers.formatDecimal(customer.balance, 1, 'COMMA', 2, 'POINT')}"></span></strong>
-    </p>
-    <p>Total sent (successful transfers, including fees):
-      <strong>LKR <span th:text="${#numbers.formatDecimal(totalSent, 1, 'COMMA', 2, 'POINT')}"></span></strong>
-    </p>
-  </section>
+    <h1>Account Transaction History</h1>
 
-  <section class="card">
-    <h2>Transactions <span class="badge" th:text="${#lists.size(transactions)}">0</span></h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Date &amp; Time</th><th>From</th><th>To</th><th class="num">Amount (LKR)</th><th>Status</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr th:if="${#lists.isEmpty(transactions)}"><td colspan="7" class="empty">No transactions for this account.</td></tr>
-          <tr th:each="t : ${transactions}">
-            <td th:text="${t.id}"></td>
-            <td th:text="${#temporals.format(t.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
-            <td th:text="${t.fromAccount}"></td>
-            <td th:text="${t.toAccount}"></td>
-            <td class="num" th:text="${#numbers.formatDecimal(t.amount, 1, 'COMMA', 2, 'POINT')}"></td>
-            <td><span class="tag" th:classappend="${t.status.name() == 'SUCCESS'} ? 'ok' : 'fail'" th:text="${t.status}"></span></td>
-            <td th:text="${t.description}"></td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="card">
+        <h2>Customer Details</h2>
+
+        <div class="details">
+
+            <div>
+                <div class="label">Customer Name</div>
+                <div class="value"
+                     th:text="${customer.name}">
+                    Customer Name
+                </div>
+            </div>
+
+            <div>
+                <div class="label">Account Number</div>
+                <div class="value"
+                     th:text="${customer.accountNumber}">
+                    Account Number
+                </div>
+            </div>
+
+            <div>
+                <div class="label">Email</div>
+                <div class="value"
+                     th:text="${customer.email}">
+                    Email
+                </div>
+            </div>
+
+            <div>
+                <div class="label">Current Balance (LKR)</div>
+                <div class="value"
+                     th:text="${customer.balance}">
+                    0.00
+                </div>
+            </div>
+
+        </div>
     </div>
-    <p style="margin-top:16px"><a th:href="@{/}" class="btn">&larr; Back to dashboard</a></p>
-  </section>
-</main>
 
-<footer class="footer">COSC 32133 / BECS 32263 &middot; Lab Sheet 06</footer>
+    <div class="card">
+        <h2>Transactions</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>From Account</th>
+                    <th>To Account</th>
+                    <th>Amount (LKR)</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="t : ${transactions}">
+
+                    <td th:text="${t.transactionDate}"></td>
+
+                    <td th:text="${t.fromAccount != null
+                        ? t.fromAccount : '-'}"></td>
+
+                    <td th:text="${t.toAccount != null
+                        ? t.toAccount : '-'}"></td>
+
+                    <td th:text="${t.amount}"></td>
+
+                    <td th:text="${t.type}"></td>
+
+                    <td>
+                        <span th:text="${t.status}"
+                              th:class="${t.status.name() == 'SUCCESS'
+                                  ? 'success' : 'failed'}">
+                        </span>
+                    </td>
+
+                    <td th:text="${t.description}"></td>
+
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="7" class="empty">
+                        No transactions found for this account.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
 </body>
 </html>
